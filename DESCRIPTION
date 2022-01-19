@@ -1,0 +1,31 @@
+Package: riffle
+Type: Package
+Title: Non-parametric randomized differential expression test for sparse data
+Version: 0.9.9001
+Date: 2022-01-18
+Authors@R: c(
+  person(given = "Christoph", family = "Hafemeister", email = "christoph.hafemeister@nyu.edu", role = c("aut", "cre"), comment = c(ORCID = "0000-0001-6365-8254"))
+  )
+Description: This package implements an effecient procedure to test for the difference of 
+  gene means between groups of cells. For all genes (rows in a sparse matrix) a background
+  distribution of the group-wise difference between means is generated and used to derive
+  an empirical p-value for the observed differences.
+URL: https://github.com/ChristophH/riffle
+BugReports: https://github.com/ChristophH/riffle/issues
+License: GPL-3 | file LICENSE
+Encoding: UTF-8
+LazyData: true
+Depends: R (>= 3.5.0)
+LinkingTo: Rcpp
+Imports:
+  Rcpp (>= 1.0.7),
+  stats,
+  dplyr,
+  Matrix,
+  matrixStats,
+  rlang,
+  magrittr
+Suggests:
+  testthat,
+  sctransform
+RoxygenNote: 7.1.1

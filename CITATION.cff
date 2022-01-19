@@ -1,0 +1,8 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Hafemeister"
+  given-names: "Christoph"
+  orcid: "https://orcid.org/0000-0001-6365-8254"
+title: "riffle: R package for non-parametric randomized differential expression tests for sparse data"
+url: "https://github.com/ChristophH/riffle"
