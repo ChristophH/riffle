@@ -5,6 +5,10 @@ row_mean_grouped_dgcmatrix <- function(matrix, group, shuffle) {
     .Call('_riffle_row_mean_grouped_dgcmatrix', PACKAGE = 'riffle', matrix, group, shuffle)
 }
 
+row_gmean_grouped_dgcmatrix <- function(matrix, group, eps, shuffle) {
+    .Call('_riffle_row_gmean_grouped_dgcmatrix', PACKAGE = 'riffle', matrix, group, eps, shuffle)
+}
+
 row_nonzero_count_grouped_dgcmatrix <- function(matrix, group) {
     .Call('_riffle_row_nonzero_count_grouped_dgcmatrix', PACKAGE = 'riffle', matrix, group)
 }

@@ -6,3 +6,7 @@
 src/*.o
 src/*.so
 src/*.dll
+vignette_resources/*.Rds
+vignette_resources/*.tsv
+vignette_resources/*.h5
+vignette_resources/*.html

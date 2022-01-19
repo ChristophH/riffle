@@ -46,7 +46,6 @@ references:
 library('Matrix')
 library('ggplot2')
 library('reshape2')
-library('sctransform')
 library('knitr')
 library('dplyr')
 library('ggrepel')
@@ -60,7 +59,6 @@ knitr::opts_chunk$set(
   digits = 2,
   tidy = TRUE,
   tidy.opts = list(width.cutoff=80),
-  optipng = '-o 5 -strip all -quiet',
   fig.width=6.5, fig.height=2.5, dpi=100, out.width = '80%'
 )
 options(dplyr.summarise.inform = FALSE)
@@ -74,8 +72,8 @@ set.seed(6646428)
 tic <- proc.time()
 
 # set the paths to resources that we need
-PBMC_H5 <- '~/Projects/data_warehouse/raw_public_10x/pbmc_10k_v3_filtered_feature_bc_matrix.h5'
-PBMC_AZIMUTH <- '~/Projects/data_warehouse/raw_public_10x/pbmc_10k_v3_azimuth_pred.tsv'
+PBMC_H5 <- 'vignette_resources/pbmc_10k_v3_filtered_feature_bc_matrix.h5'
+PBMC_AZIMUTH <- 'vignette_resources/pbmc_10k_v3_azimuth_pred.tsv'
 
 ```
 
@@ -84,8 +82,6 @@ PBMC_AZIMUTH <- '~/Projects/data_warehouse/raw_public_10x/pbmc_10k_v3_azimuth_pr
     width: auto;
 }
 </style>
-
-> **_NOTE:_** This document was generated with `sctransform` version `r packageVersion(pkg = 'sctransform')`
 
 ## Introduction
 
@@ -182,7 +178,7 @@ grp <- factor(c('rest', 'CD14 Mono')[(cell_types == 'CD14 Mono') + 1])
 tmp_counts <- counts[goi, , drop = FALSE]
 R <- 99
 diff_mean_null <- sapply(1:R, function(i) {
-  mean_r <- sctransform:::row_gmean_grouped_dgcmatrix(matrix = tmp_counts, group = grp, eps = 1, shuffle = TRUE)
+  mean_r <- riffle:::row_gmean_grouped_dgcmatrix(matrix = tmp_counts, group = grp, eps = 1, shuffle = TRUE)
   mean_r[, 1] - mean_r[, 2]
 })
 df_null <- melt(diff_mean_null, varnames = c('gene', 'iteration'), value.name = 'diff_mean')
@@ -241,11 +237,11 @@ The lowest possible empirical p-value is 1/(R+1) whith R being the number of ran
 First, we will take the count matrix and fit a model using `sctransform::vst`, and in a second step obtain corrected counts (with the sequencing depth effect removed). Then compare the two groups.
 
 ```{r}
-vst_out <- vst(umi = counts, method = 'qpoisson', residual_type = 'none', return_cell_attr = TRUE, verbosity = 0)
-counts_corrected <- correct_counts(x = vst_out, umi = counts, verbosity = 0)
+vst_out <- sctransform::vst(umi = counts, method = 'qpoisson', residual_type = 'none', return_cell_attr = TRUE, verbosity = 0)
+counts_corrected <- sctransform::correct_counts(x = vst_out, umi = counts, verbosity = 0)
 ```
 
-By default `sctransform::diff_mean_test` applies some moderate pre-filtering  and
+By default `riffle::diff_mean_test` applies some moderate pre-filtering  and
 tests only genes with:
 
 * absolute log2-fold-change of at least log2(1.2) (`r log2(1.2)`) AND
@@ -257,11 +253,11 @@ one of the groups. We show results as a volcano plot and highlight the top DE ge
 
 ```{r}
 bm <- bench::mark(
-  de_res <- diff_mean_test(y = counts_corrected, 
-                           group_labels = cell_types, 
-                           compare = c('CD14 Mono', 'CD16 Mono'),
-                           log2FC_th = 0, 
-                           mean_th = 0.1),
+  de_res <- riffle::diff_mean_test(y = counts_corrected, 
+                                   group_labels = cell_types, 
+                                   compare = c('CD14 Mono', 'CD16 Mono'),
+                                   log2FC_th = 0, 
+                                   mean_th = 0.1),
   max_iterations = 1, 
   filter_gc = FALSE
 )
@@ -303,12 +299,12 @@ Here we use the test to find genes that are high for each cell type compared to 
 
 ```{r}
 bm <- bench::mark(
-  de_res <- diff_mean_test(y = counts_corrected, 
-                           group_labels = cell_types, 
-                           R = 49, 
-                           only_pos = TRUE, 
-                           only_top_n = 222,
-                           verbosity = 0)
+  de_res <- riffle::diff_mean_test(y = counts_corrected, 
+                                   group_labels = cell_types, 
+                                   R = 49, 
+                                   only_pos = TRUE, 
+                                   only_top_n = 222,
+                                   verbosity = 0)
 )
 knitr::kable(data.frame(bm[, 5:9]), caption = "Benchmarking details")
 ```
@@ -341,13 +337,13 @@ are cell type specific across many individual comparisons.
 
 ```{r}
 bm <- bench::mark(
-  de_res <- diff_mean_test(y = counts_corrected, 
-                           group_labels = cell_types, 
-                           compare = 'all_vs_all',
-                           R = 49, 
-                           mean_th = 0.1, 
-                           log2FC_th = 0,
-                           verbosity = 0)
+  de_res <- riffle::diff_mean_test(y = counts_corrected, 
+                                   group_labels = cell_types, 
+                                   compare = 'all_vs_all',
+                                   R = 49, 
+                                   mean_th = 0.1, 
+                                   log2FC_th = 0,
+                                   verbosity = 0)
 )
 knitr::kable(data.frame(bm[, 5:9]), caption = "Benchmarking details")
 ```
@@ -426,12 +422,12 @@ We can also test one or more groups against one or more other groups. As an exam
 
 ```{r}
 bm <- bench::mark(
-  de_res <- diff_mean_test(y = counts_corrected, 
-                           group_labels = cell_types, 
-                           compare = list(c('CD4 Naive', 'CD4 TCM', 'CD4 TEM'),
-                                          c('CD8 Naive', 'CD8 TCM', 'CD8 TEM')),
-                           log2FC_th = 0, 
-                           mean_th = 0.1),
+  de_res <- riffle::diff_mean_test(y = counts_corrected, 
+                                   group_labels = cell_types, 
+                                   compare = list(c('CD4 Naive', 'CD4 TCM', 'CD4 TEM'),
+                                                  c('CD8 Naive', 'CD8 TCM', 'CD8 TEM')),
+                                   log2FC_th = 0, 
+                                   mean_th = 0.1),
   max_iterations = 1, 
   filter_gc = FALSE
 )
@@ -481,16 +477,16 @@ s <- FindClusters(s, verbose = FALSE)
 DimPlot(s, label = TRUE) + NoLegend() + ggtitle('Unsupervised clustering')
 ```
 
-The cells have been grouped into `r length(levels(s$seurat_clusters))` clusters. We are now going to use `sctransform::diff_mean_test` to find the top cluster markers. For this we access the normalized counts that are in the `SCT` assay and the cluster labels.
+The cells have been grouped into `r length(levels(s$seurat_clusters))` clusters. We are now going to use `riffle::diff_mean_test` to find the top cluster markers. For this we access the normalized counts that are in the `SCT` assay and the cluster labels.
 
 ```{r}
 bm <- bench::mark(
-  de_res <- diff_mean_test(y = GetAssayData(s, assay = 'SCT', slot = 'counts'), 
-                           group_labels = s$seurat_clusters, 
-                           R = 49, 
-                           only_pos = TRUE, 
-                           only_top_n = 222,
-                           verbosity = 0)
+  de_res <- riffle::diff_mean_test(y = GetAssayData(s, assay = 'SCT', slot = 'counts'), 
+                                   group_labels = s$seurat_clusters, 
+                                   R = 49, 
+                                   only_pos = TRUE, 
+                                   only_top_n = 222,
+                                   verbosity = 0)
 )
 knitr::kable(data.frame(bm[, 5:9]), caption = "Benchmarking details")
 ```
@@ -530,7 +526,7 @@ Here we show how to use the test to identify the conserved (or consistent) clust
 
 First, follow the Seurat [integration vignette](https://satijalab.org/seurat/articles/integration_introduction.html) to obtain an integrated object.
 
-```{r}
+```{r, eval=FALSE}
 library('Seurat')
 library('SeuratData')
 LoadData("ifnb")
@@ -549,6 +545,11 @@ immune.combined.sct <- IntegrateData(anchorset = immune.anchors,
                                      verbose = FALSE)
 ```
 
+To speed up compilation of this vignette, we load the pre-calculated object.
+```{r}
+immune.combined.sct <- readRDS(file = 'vignette_resources/ifnb_integrated.Rds')
+```
+
 Note that in this example both samples have been sequenced to similar depth. When working with data where there is a stark discrepancy between sequencing depth, one should make sure that the corrected counts used for differential expression testing were generated using the same 'target' depth. Since this is not supported by `Seurat::SCTransform` it requires running `sctransform::correct()` with identical cell meta data for all samples and setting the `as_is` parameter to TRUE. However, in this example we can proceed without any extra steps.
 
 In an unsupervised analysis one would now perform dimensionality reduction and clustering. To keep it simple, we skip these steps and directly use the cell type labels that are provided with the original seurat object.
@@ -557,7 +558,7 @@ Now we identify cluster marker genes (each vs rest) that are conserved, i.e. con
 
 ```{r}
 bm <- bench::mark(
-  de_res <- diff_mean_test_conserved(
+  de_res <- riffle::diff_mean_test_conserved(
     y = GetAssayData(immune.combined.sct, assay = 'SCT', slot = 'counts'), 
     group_labels = immune.combined.sct$seurat_annotations, 
     sample_labels = immune.combined.sct$stim, 
@@ -598,7 +599,7 @@ celltypes <- immune.combined.sct$seurat_annotations
 samples <- immune.combined.sct$stim
 immune.combined.sct$type_by_stim <- factor(x = paste(celltypes, samples, sep = ' '),
                                            levels = paste(rep(levels(top_markers$group1), each = length(unique(samples))), unique(samples)))
-mat <- sctransform:::row_gmean_grouped_dgcmatrix(
+mat <- riffle:::row_gmean_grouped_dgcmatrix(
   matrix = GetAssayData(immune.combined.sct, assay = 'SCT', slot = 'counts')[top_markers$gene, ], 
   group = factor(immune.combined.sct$type_by_stim), 
   eps = 1, 
@@ -627,7 +628,7 @@ show(p1)
 To identify differences between stimulated and control conditions within a celltype, use the test as shown in the examples above. For example, below we look for genes differentially expressed between conditions within B cells.
 
 ```{r}
-de_res <- diff_mean_test(
+de_res <- riffle::diff_mean_test(
     y = GetAssayData(immune.combined.sct, assay = 'SCT', slot = 'counts'), 
     group_labels = immune.combined.sct$type_by_stim, 
     compare = c('B CTRL', 'B STIM'),
@@ -641,6 +642,8 @@ rbind(top_markers1, top_markers2) %>% select(gene, mean1, mean2, log2FC, pval_ad
 
 
 ## Session info and runtime
+
+> **_NOTE:_** This document was generated with `riffle` version `r packageVersion(pkg = 'riffle')`
 
 Session info
 ```{r}

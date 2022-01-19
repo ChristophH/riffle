@@ -1,0 +1,70 @@
+---
+title: "ifnb integration"
+author: "Christoph Hafemeister"
+date: "`r Sys.Date()`"
+---
+
+```{r}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  cache = FALSE,
+  warning = FALSE,
+  digits = 2,
+  tidy = TRUE,
+  tidy.opts = list(width.cutoff=80),
+  fig.width=6.5, fig.height=2.5, dpi=100, out.width = '80%'
+)
+# We use the Future API for parallel processing; set parameters here
+future::plan(strategy = 'multicore', workers = 1)
+options(future.globals.maxSize = 8 * 1024 ^ 3)
+options(future.fork.enable = FALSE)
+set.seed(6646428)
+tic <- proc.time()
+```
+
+<style>
+.table {
+    width: auto;
+}
+</style>
+
+## Integrate
+
+```{r}
+library('Seurat')
+library('SeuratData')
+InstallData("ifnb")
+LoadData("ifnb")
+ifnb.list <- SplitObject(ifnb, split.by = "stim")
+ifnb.list <- lapply(X = ifnb.list, FUN = SCTransform, method = 'qpoisson', verbose = FALSE)
+features <- SelectIntegrationFeatures(object.list = ifnb.list, nfeatures = 3000,
+                                      verbose = FALSE)
+ifnb.list <- PrepSCTIntegration(object.list = ifnb.list, anchor.features = features,
+                                verbose = FALSE)
+immune.anchors <- FindIntegrationAnchors(object.list = ifnb.list,
+                                         normalization.method = "SCT",
+                                         anchor.features = features,
+                                         verbose = FALSE)
+immune.combined.sct <- IntegrateData(anchorset = immune.anchors,
+                                     normalization.method = "SCT",
+                                     verbose = FALSE)
+```
+
+## Save
+
+```{r}
+saveRDS(object = immune.combined.sct, file = 'vignette_resources/ifnb_integrated.Rds')
+```
+
+## Session info and runtime
+
+Session info
+```{r}
+sessionInfo()
+```
+
+Runtime
+```{r}
+print(proc.time() - tic)
+```
