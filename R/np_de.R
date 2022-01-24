@@ -356,7 +356,7 @@ diff_mean_test_conserved <- function(y, group_labels, sample_labels, balanced = 
     if (balanced) {
       res_lst <- lapply(levels(sample_labels), function(sl) {
         sel <- sample_labels == sl
-        res <- diff_mean_test(y = y[, sel], group_labels = group_labels[sel], 
+        res <- diff_mean_test(y = y[, sel, drop = FALSE], group_labels = group_labels[sel], 
                               compare = compare, ...)
         if (!is.null(res)) {
           res$sample <- sl
@@ -382,11 +382,13 @@ diff_mean_test_conserved <- function(y, group_labels, sample_labels, balanced = 
           res_lst <- lapply(unique(other_samples_not_in_group), function(osl_not_in_group) {
             sel <- (gl_sel & sl_in_group_sel) | (!gl_sel & sample_labels == osl_not_in_group)
             tmp_group <- c(gl, gl_rest)[as.numeric(!gl_sel & sample_labels == osl_not_in_group) + 1]
-            res <- diff_mean_test(y = y[, sel], group_labels = tmp_group[sel], 
+            res <- diff_mean_test(y = y[, sel, drop = FALSE], group_labels = tmp_group[sel], 
                                   compare = c(gl, gl_rest), ...)
-            if (!is.null(res)) {
+            if (nrow(res) > 0) {
               res$sample1 <- sl_in_group
               res$sample2 <- osl_not_in_group
+            } else {
+              res <- NULL
             }
             res
           })
