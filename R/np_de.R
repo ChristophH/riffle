@@ -1,6 +1,3 @@
-#' @useDynLib riffle
-NULL
-
 #' Non-parametric differential expression test for sparse non-negative data
 #'
 #' @param y A matrix of counts; must be (or inherit from) class dgCMatrix; genes are row,
