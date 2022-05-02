@@ -11,48 +11,47 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
 // row_mean_grouped_dgcmatrix
-NumericMatrix row_mean_grouped_dgcmatrix(S4 matrix, IntegerVector group, bool shuffle);
-RcppExport SEXP _riffle_row_mean_grouped_dgcmatrix(SEXP matrixSEXP, SEXP groupSEXP, SEXP shuffleSEXP) {
+NumericMatrix row_mean_grouped_dgcmatrix(S4 matrix, IntegerVector group_labels, bool shuffle);
+RcppExport SEXP _riffle_row_mean_grouped_dgcmatrix(SEXP matrixSEXP, SEXP group_labelsSEXP, SEXP shuffleSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< S4 >::type matrix(matrixSEXP);
-    Rcpp::traits::input_parameter< IntegerVector >::type group(groupSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type group_labels(group_labelsSEXP);
     Rcpp::traits::input_parameter< bool >::type shuffle(shuffleSEXP);
-    rcpp_result_gen = Rcpp::wrap(row_mean_grouped_dgcmatrix(matrix, group, shuffle));
+    rcpp_result_gen = Rcpp::wrap(row_mean_grouped_dgcmatrix(matrix, group_labels, shuffle));
     return rcpp_result_gen;
 END_RCPP
 }
-// row_gmean_grouped_dgcmatrix
-NumericMatrix row_gmean_grouped_dgcmatrix(S4 matrix, IntegerVector group, double eps, bool shuffle);
-RcppExport SEXP _riffle_row_gmean_grouped_dgcmatrix(SEXP matrixSEXP, SEXP groupSEXP, SEXP epsSEXP, SEXP shuffleSEXP) {
+// row_mean_grouped_dense
+NumericMatrix row_mean_grouped_dense(NumericMatrix matrix, IntegerVector group_labels, bool shuffle);
+RcppExport SEXP _riffle_row_mean_grouped_dense(SEXP matrixSEXP, SEXP group_labelsSEXP, SEXP shuffleSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< S4 >::type matrix(matrixSEXP);
-    Rcpp::traits::input_parameter< IntegerVector >::type group(groupSEXP);
-    Rcpp::traits::input_parameter< double >::type eps(epsSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type matrix(matrixSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type group_labels(group_labelsSEXP);
     Rcpp::traits::input_parameter< bool >::type shuffle(shuffleSEXP);
-    rcpp_result_gen = Rcpp::wrap(row_gmean_grouped_dgcmatrix(matrix, group, eps, shuffle));
+    rcpp_result_gen = Rcpp::wrap(row_mean_grouped_dense(matrix, group_labels, shuffle));
     return rcpp_result_gen;
 END_RCPP
 }
 // row_nonzero_count_grouped_dgcmatrix
-IntegerMatrix row_nonzero_count_grouped_dgcmatrix(S4 matrix, IntegerVector group);
-RcppExport SEXP _riffle_row_nonzero_count_grouped_dgcmatrix(SEXP matrixSEXP, SEXP groupSEXP) {
+IntegerMatrix row_nonzero_count_grouped_dgcmatrix(S4 matrix, IntegerVector group_labels);
+RcppExport SEXP _riffle_row_nonzero_count_grouped_dgcmatrix(SEXP matrixSEXP, SEXP group_labelsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< S4 >::type matrix(matrixSEXP);
-    Rcpp::traits::input_parameter< IntegerVector >::type group(groupSEXP);
-    rcpp_result_gen = Rcpp::wrap(row_nonzero_count_grouped_dgcmatrix(matrix, group));
+    Rcpp::traits::input_parameter< IntegerVector >::type group_labels(group_labelsSEXP);
+    rcpp_result_gen = Rcpp::wrap(row_nonzero_count_grouped_dgcmatrix(matrix, group_labels));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
     {"_riffle_row_mean_grouped_dgcmatrix", (DL_FUNC) &_riffle_row_mean_grouped_dgcmatrix, 3},
-    {"_riffle_row_gmean_grouped_dgcmatrix", (DL_FUNC) &_riffle_row_gmean_grouped_dgcmatrix, 4},
+    {"_riffle_row_mean_grouped_dense", (DL_FUNC) &_riffle_row_mean_grouped_dense, 3},
     {"_riffle_row_nonzero_count_grouped_dgcmatrix", (DL_FUNC) &_riffle_row_nonzero_count_grouped_dgcmatrix, 2},
     {NULL, NULL, 0}
 };

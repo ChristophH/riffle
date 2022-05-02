@@ -1,7 +1,7 @@
 Package: riffle
 Type: Package
 Title: Non-parametric randomized differential expression test for sparse data
-Version: 0.9.9004
+Version: 0.9.9005
 Date: 2022-04-05
 Authors@R: c(
   person(given = "Christoph", family = "Hafemeister", email = "christoph.hafemeister@nyu.edu", role = c("aut", "cre"), comment = c(ORCID = "0000-0001-6365-8254"))

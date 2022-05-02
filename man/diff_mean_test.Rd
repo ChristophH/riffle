@@ -14,7 +14,6 @@ diff_mean_test(
   cells_th = 5,
   only_pos = FALSE,
   only_top_n = NULL,
-  mean_type = "geometric",
   verbosity = 1
 )
 }
@@ -44,11 +43,6 @@ default is FALSE}
 \item{only_top_n}{Test only the this number of genes from both ends of the log2FC spectrum
 after all of the above filters have been applied; useful to get only the top markers; 
 only used if set to a numeric value; default is NULL}
-
-\item{mean_type}{Which type of mean to use; if \code{'geometric'} (default) the geometric mean is
-used; to avoid \code{log(0)} we use \code{log1p} to add 1 to all counts and log-transform, 
-calculate the arithmetic mean, and then back-transform and subtract 1 using \code{exp1m}; if
-this parameter is set to \code{'arithmetic'} the data is used as is}
 
 \item{verbosity}{Integer controlling how many messages the function prints; 
 0 is silent, 1 (default) is not}

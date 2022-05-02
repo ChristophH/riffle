@@ -17,10 +17,6 @@
 #' @param only_top_n Test only the this number of genes from both ends of the log2FC spectrum
 #' after all of the above filters have been applied; useful to get only the top markers; 
 #' only used if set to a numeric value; default is NULL
-#' @param mean_type Which type of mean to use; if \code{'geometric'} (default) the geometric mean is
-#' used; to avoid \code{log(0)} we use \code{log1p} to add 1 to all counts and log-transform, 
-#' calculate the arithmetic mean, and then back-transform and subtract 1 using \code{exp1m}; if
-#' this parameter is set to \code{'arithmetic'} the data is used as is
 #' @param verbosity Integer controlling how many messages the function prints; 
 #' 0 is silent, 1 (default) is not
 #'
@@ -74,13 +70,9 @@ diff_mean_test <- function(y, group_labels,
                            R = 99, log2FC_th = log2(1.2), 
                            mean_th = 0.05, cells_th = 5, only_pos = FALSE,
                            only_top_n = NULL,
-                           mean_type = 'geometric', 
                            verbosity = 1) {
-  if (is.na(match(x = mean_type, table = c('geometric', 'arithmetic')))) {
-    stop('mean_type must be geometric or arithmetic')
-  }
-  if (!inherits(x = y, what = 'dgCMatrix')) {
-    stop('y must be a dgCMatrix')
+  if (!inherits(x = y, what = c('dgCMatrix', 'matrix'))) {
+    stop('y must be a dgCMatrix or a matrix')
   }
   if (R < 13) {
     stop('R must be at least 13')
@@ -96,10 +88,17 @@ diff_mean_test <- function(y, group_labels,
     stop('length of group labels must be equal to the number of columns in y')
   }
   
+  # determine if we are working with a dense matrix
+  is_dense <- FALSE
+  if (inherits(x = y, what = 'matrix')) {
+    is_dense <- TRUE
+  }
+  
   if (verbosity > 0) {
-    message('Non-parametric DE test for count data')
-    message(sprintf('Using %s mean and %d random permutations', mean_type, R))
+    message('Non-parametric DE test')
+    message(sprintf('Using %d random permutations', R))
     message('Input: ', nrow(y), ' genes, ', ncol(y), ' cells; ', G, ' groups')
+    message('Input class: ', class(y)[1])
   }
   
   # Set up the comparisons we want to do; each comparison is a list
@@ -141,15 +140,16 @@ diff_mean_test <- function(y, group_labels,
   }
   
   # for all the genes, get the number of non-zero observations per group
-  cells <- row_nonzero_count_grouped_dgcmatrix(matrix = y, group = group_labels)
-  # if we want to use the geometric mean, it's fastest to convert all counts to
-  # log1p upfront, then use expm1 of arithmetic mean later on
-  if (mean_type == 'geometric') {
-    y@x <- log(y@x + 1)
-    means <- row_mean_grouped_dgcmatrix(matrix = y, group = group_labels, shuffle = FALSE)
+  # if the input is a dense matrix, assume all values are non-zero
+  if (is_dense) {
+    cells <- matrix(rep(x = table(group_labels), times = nrow(y)), nrow(y), byrow = TRUE)
+    colnames(cells) <- levels(group_labels)
+    rownames(cells) <- rownames(y)
   } else {
-    means <- row_mean_grouped_dgcmatrix(matrix = y, group = group_labels, shuffle = FALSE)
+    cells <- row_nonzero_count_grouped_dgcmatrix(matrix = y, group_labels = group_labels)
   }
+  # get arithmetic mean per gene per group
+  means <- row_mean_grouped(y = y, group_labels = group_labels)
   
   # Run the test for each comparison
   res_lst <- lapply(comparisons, function(comp) {
@@ -167,7 +167,7 @@ diff_mean_test <- function(y, group_labels,
       return()
     }
     comp_cells <- do.call(cbind, lapply(comp[3:4], function(x) combine_counts(cells, x)))
-    comp_means <- do.call(cbind, lapply(comp[3:4], function(x) combine_means(means, lab_tab, x, mean_type)))
+    comp_means <- do.call(cbind, lapply(comp[3:4], function(x) combine_means(means, lab_tab, x)))
     
     res <- data.frame(gene = rownames(means),
                       group1 = comp[[1]],
@@ -208,17 +208,10 @@ diff_mean_test <- function(y, group_labels,
     
     # now get the empirical null distribution for mean_diff
     y_ss <- y[rownames(res), sel_columns, drop = FALSE]
-    if (mean_type == 'geometric') {
-      mean_diff_rnd <- do.call(cbind, lapply(1:R, function(i) {
-        means_r <- expm1(row_mean_grouped_dgcmatrix(matrix = y_ss, group = comp_group_labels, shuffle = TRUE))
-        means_r[, 1, drop = FALSE] - means_r[, 2, drop = FALSE]
-      }))
-    } else {
-      mean_diff_rnd <- do.call(cbind, lapply(1:R, function(i) {
-        means_r <- row_mean_grouped_dgcmatrix(matrix = y_ss, group = comp_group_labels, shuffle = TRUE)
-        means_r[, 1, drop = FALSE] - means_r[, 2, drop = FALSE]
-      }))
-    }
+    mean_diff_rnd <- do.call(cbind, lapply(1:R, function(i) {
+      means_r <- row_mean_grouped(y = y_ss, group_labels = comp_group_labels, shuffle = TRUE)
+      means_r[, 1, drop = FALSE] - means_r[, 2, drop = FALSE]
+    }))
     
     # use null distribution to get empirical p-values
     # also approximate null with normal and derive z-scores and p-values
@@ -248,34 +241,28 @@ diff_mean_test <- function(y, group_labels,
 }
 
 # helper functions
+row_mean_grouped <- function(y, group_labels, shuffle = FALSE) {
+  if (inherits(x = y, what = 'matrix')) {
+    row_mean_grouped_dense(matrix = y, group_labels = group_labels, shuffle = shuffle)
+  } else {
+    row_mean_grouped_dgcmatrix(matrix = y, group_labels = group_labels, shuffle = shuffle)
+  }
+}
 
 combine_counts <- function(group_counts, columns) {
   as.matrix(rowSums(group_counts[, columns, drop = FALSE]))
 }
 
 # combine per-group-mean to get the mean spanning multiple groups
-# in an act of irrational premature optimization, we pass the 
-# log-space mean when mean_type is geometric - need to make sure to 
-# transform with exp1m before returning
-combine_means <- function(means, n_items, columns, mean_type) {
+combine_means <- function(means, n_items, columns) {
   if (length(columns) == 1) {
-    if (mean_type == 'arithmetic') {
-      return(means[, columns, drop = FALSE])
-    }
-    if (mean_type == 'geometric') {
-      return(expm1(means[, columns, drop = FALSE]))
-    }
+    return(means[, columns, drop = FALSE])
   }
   means <- means[, columns]
   n_items <- n_items[columns]
   tmp <- sweep(x = means, MARGIN = 2, STATS = n_items, FUN = '*')
   
-  if (mean_type == 'arithmetic') {
-    return(as.matrix(rowSums(tmp) / sum(n_items)))
-  }
-  if (mean_type == 'geometric') {
-    return(as.matrix(expm1(rowSums(tmp) / sum(n_items))))
-  }
+  return(as.matrix(rowSums(tmp) / sum(n_items)))
 }
 
 #' Find differentially expressed genes that are conserved across samples
